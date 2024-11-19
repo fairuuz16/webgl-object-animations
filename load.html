@@ -3,13 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Load GLB Model with Interaction</title>
+    <title>Interactive GLB Model</title>
     <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+        button, input {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
+    <!-- Control Panel -->
+    <div id="controls">
+        <button id="startAnimation">Start Animation</button>
+        <button id="stopAnimation">Stop Animation</button>
+        <label>
+            Background: 
+            <input type="color" id="bgColorPicker" value="#ffffff">
+        </label>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/controls/OrbitControls.js"></script>
@@ -22,49 +53,74 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        // OrbitControls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.25;
+        controls.screenSpacePanning = false;
+
+        // Lighting
+        const light = new THREE.AmbientLight(0x404040);
+        scene.add(light);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 5, 5).normalize();
+        scene.add(directionalLight);
+
+        // Variables for animation and mixer
+        let mixer, clock, isAnimating = false;
+
         // Load GLB Model
         const loader = new THREE.GLTFLoader();
         loader.load('jam-final.glb', function (gltf) {
             const model = gltf.scene;
             scene.add(model);
 
-            // Optional: Set model scale and position
-            model.scale.set(1, 1, 1); // Scale the model if necessary
-            model.position.set(0, 0, 0); // Position the model in the scene
-
-            // If the model has animations, you can play them as well
-            const mixer = new THREE.AnimationMixer(model);
+            // Initialize Animation Mixer
+            mixer = new THREE.AnimationMixer(model);
             gltf.animations.forEach((clip) => {
                 mixer.clipAction(clip).play();
             });
 
-            // Camera and Lighting
+            clock = new THREE.Clock();
             camera.position.z = 5;
 
-            const light = new THREE.AmbientLight(0x404040); // Ambient light
-            scene.add(light);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Directional light
-            directionalLight.position.set(5, 5, 5).normalize();
-            scene.add(directionalLight);
-
-            // Controls (OrbitControls)
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; // Enable smooth movement
-            controls.dampingFactor = 0.25;
-            controls.screenSpacePanning = false;
-
-            // Render the scene
-            function animate() {
-                requestAnimationFrame(animate);
-                mixer.update(0.01); // Update animation frame
-                controls.update(); // Update controls
-                renderer.render(scene, camera);
-            }
-
+            // Start rendering loop
             animate();
         }, undefined, function (error) {
             console.error('An error occurred while loading the GLB model:', error);
         });
+
+        // Animation control
+        const startAnimationButton = document.getElementById('startAnimation');
+        const stopAnimationButton = document.getElementById('stopAnimation');
+
+        startAnimationButton.addEventListener('click', () => {
+            isAnimating = true;
+        });
+
+        stopAnimationButton.addEventListener('click', () => {
+            isAnimating = false;
+        });
+
+        // Background color control
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        bgColorPicker.addEventListener('input', (event) => {
+            scene.background = new THREE.Color(event.target.value);
+        });
+
+        // Rendering loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update mixer if animation is active
+            if (mixer && isAnimating) {
+                const delta = clock.getDelta();
+                mixer.update(delta);
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
 
         // Window Resize Listener
         window.addEventListener('resize', () => {
@@ -72,6 +128,9 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        // Set initial background color to white
+        scene.background = new THREE.Color("#ffffff");
     </script>
 </body>
 </html>
