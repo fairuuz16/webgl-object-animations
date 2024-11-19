@@ -1,55 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>FBX File Loader</title>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/FBXLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/MTLLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/libs/fflate.min.js"></script></head>
-
+    <title>Load GLB Model with Interaction</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
 <body>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.142.0/examples/js/controls/OrbitControls.js"></script>
+
     <script>
-        let scene, camera, renderer;
+        // Scene Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xdddddd);
+        // Load GLB Model
+        const loader = new THREE.GLTFLoader();
+        loader.load('jam-final.glb', function (gltf) {
+            const model = gltf.scene;
+            scene.add(model);
 
-            camera = new THREE.PerspectiveCamera(5, window.innerWidth/window.innerHeight, 1, 5000);
-            camera.position.z = 1000;
+            // Optional: Set model scale and position
+            model.scale.set(1, 1, 1); // Scale the model if necessary
+            model.position.set(0, 0, 0); // Position the model in the scene
 
-            light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-            light.position.set(0, 1, 0);
-            scene.add(light);
-
-            light = new THREE.DirectionalLight(0xffffff, 1.0);
-            light.position.set(0, 1, 0);
-            scene.add(light);
-
-            renderer = new THREE.WebGLRenderer({antialias:true});
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            controls = new THREE.OrbitControls(camera,  renderer.domElement);
-            controls.addEventListener('change', renderer);
-
-            const fbxLoader = new THREE.FBXLoader();
-
-            fbxLoader.load('jamDinding.fbx', (object) => {
-              scene.add(object);
-              animate();
+            // If the model has animations, you can play them as well
+            const mixer = new THREE.AnimationMixer(model);
+            gltf.animations.forEach((clip) => {
+                mixer.clipAction(clip).play();
             });
-        }
-        function animate(){
-            renderer.render(scene,camera);
-            requestAnimationFrame(animate);
-        }
-        init();
+
+            // Camera and Lighting
+            camera.position.z = 5;
+
+            const light = new THREE.AmbientLight(0x404040); // Ambient light
+            scene.add(light);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Directional light
+            directionalLight.position.set(5, 5, 5).normalize();
+            scene.add(directionalLight);
+
+            // Controls (OrbitControls)
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true; // Enable smooth movement
+            controls.dampingFactor = 0.25;
+            controls.screenSpacePanning = false;
+
+            // Render the scene
+            function animate() {
+                requestAnimationFrame(animate);
+                mixer.update(0.01); // Update animation frame
+                controls.update(); // Update controls
+                renderer.render(scene, camera);
+            }
+
+            animate();
+        }, undefined, function (error) {
+            console.error('An error occurred while loading the GLB model:', error);
+        });
+
+        // Window Resize Listener
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
