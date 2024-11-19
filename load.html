@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive GLB Model</title>
+    <title>Clock Animation</title>
     <style>
         body {
             margin: 0;
@@ -12,6 +12,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
         }
         canvas {
             display: block;
@@ -21,12 +23,61 @@
             top: 10px;
             left: 10px;
             z-index: 10;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             display: flex;
+            flex-direction: column;
             gap: 10px;
         }
-        button, input {
-            padding: 5px 10px;
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
             font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        label {
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #007BFF;
+            cursor: pointer;
+        }
+        input[type="color"] {
+            width: 50px;
+            height: 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -38,6 +89,22 @@
         <label>
             Background: 
             <input type="color" id="bgColorPicker" value="#ffffff">
+        </label>
+        <label>
+            Light Intensity: 
+            <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="1">
+        </label>
+        <label>
+            Light Position X: 
+            <input type="range" id="lightPosX" min="-5" max="5" step="0.1" value="5">
+        </label>
+        <label>
+            Light Position Y: 
+            <input type="range" id="lightPosY" min="-5" max="5" step="0.1" value="5">
+        </label>
+        <label>
+            Light Position Z: 
+            <input type="range" id="lightPosZ" min="-5" max="5" step="0.1" value="5">
         </label>
     </div>
 
@@ -60,9 +127,10 @@
         controls.screenSpacePanning = false;
 
         // Lighting
-        const light = new THREE.AmbientLight(0x404040);
+        const light = new THREE.AmbientLight(0x404040); // Ambient light with default intensity
         scene.add(light);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Directional light with default intensity
         directionalLight.position.set(5, 5, 5).normalize();
         scene.add(directionalLight);
 
@@ -106,6 +174,29 @@
         const bgColorPicker = document.getElementById('bgColorPicker');
         bgColorPicker.addEventListener('input', (event) => {
             scene.background = new THREE.Color(event.target.value);
+        });
+
+        // Lighting controls
+        const lightIntensity = document.getElementById('lightIntensity');
+        const lightPosX = document.getElementById('lightPosX');
+        const lightPosY = document.getElementById('lightPosY');
+        const lightPosZ = document.getElementById('lightPosZ');
+
+        // Update lighting intensity and position based on input
+        lightIntensity.addEventListener('input', (event) => {
+            directionalLight.intensity = event.target.value;
+        });
+
+        lightPosX.addEventListener('input', (event) => {
+            directionalLight.position.x = event.target.value;
+        });
+
+        lightPosY.addEventListener('input', (event) => {
+            directionalLight.position.y = event.target.value;
+        });
+
+        lightPosZ.addEventListener('input', (event) => {
+            directionalLight.position.z = event.target.value;
         });
 
         // Rendering loop
